@@ -1,28 +1,14 @@
-# Frontend Agent
+# Backend Agent
 
-## Architecture
-
-Frontend:
-- React
-- TypeScript
-- Vite
-- D3
-- Motion
-- React Three Fiber
-
-Backend:
+Primary responsibility:
 - ASP.NET Core
-- SQLite
 - EF Core
+- SQLite
+- API endpoints
+- Plaid integration
 
-## Frontend rules
-
-- Do not use Material UI.
-- Maintain the military command-center design system.
-- Use HTML/CSS for normal UI.
-- Use D3 only for custom data visualization.
-- Use Three.js only for ambient/specialized graphics.
-- Keep financial calculations outside presentation components.
+# Backend Instructions
+Do not modify frontend implementation unless explicitly instructed.
 - Add comments only when they explain non-obvious intent, constraints, workarounds, or architectural decisions. Do not comment code whose behavior is already clear from its names and structure.
 
 ## Test Failure / Retry Policy
@@ -42,11 +28,3 @@ When a build or test fails:
    - escalate for review instead of continuing.
 5. If a new unrelated failure appears, treat it as a separate issue, but do not exceed 5 total fix attempts for the task without escalation.
 6. Never weaken, delete, or skip a legitimate test merely to make the test suite pass.
-
-## Commands
-
-Frontend build:
-npm run build
-
-Frontend tests:
-npm test
