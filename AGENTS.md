@@ -14,6 +14,8 @@ Agents must never modify:
 
 ## Git workflow
 
+Before starting work, sync your branch with the latest origin/dev using git fetch origin and git rebase origin/dev. If there are conflicts or uncommitted changes that prevent the rebase, do not discard work; resolve safely or report the issue.
+
 For completed feature work:
 
 1. Create a new branch from the current base branch.
