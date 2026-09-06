@@ -50,7 +50,6 @@ type View = 'overview' | 'cashflow' | 'allocations' | 'accounts';
 type Drawer =
   | { type: 'entry'; kind: EntryKind; entry?: FinancialEntry }
   | { type: 'allocate' | 'settings' | 'activity' | 'help' }
-  | { type: 'delete'; entry: FinancialEntry }
   | null;
 // One list supplies the sidebar labels, icons, and view identifiers.
 const nav = [
@@ -203,11 +202,12 @@ export default function App() {
   };
   const action: EntryAction = async (type, entry, date) => {
     // Timeline actions pass an occurrence date; ledger actions default to the entry's anchor.
-    if (type === 'delete') {
-      setDrawer({ type: 'delete', entry });
-      return;
-    }
     try {
+      if (type === 'delete') {
+        updateSnapshot(await financeService.deleteEntry(entry.id));
+        notify(`${entry.name} deleted.`);
+        return;
+      }
       if (type === 'complete') updateSnapshot(await financeService.completeEntry(entry.id, date));
       if (type === 'skip')
         updateSnapshot(await financeService.skipEntry(entry.id, date ?? entry.date));
@@ -554,9 +554,7 @@ export default function App() {
                   ? 'Operating limits'
                   : drawer.type === 'activity'
                     ? 'Activity log'
-                    : drawer.type === 'delete'
-                      ? 'Delete financial entry'
-                      : 'Console guide'
+                    : 'Console guide'
           }
           kicker={
             drawer.type === 'entry' ? 'FINANCIAL EVENT / MANUAL CONTROL' : 'VECTOR / SYSTEM CONTROL'
@@ -606,28 +604,6 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-          )}
-          {drawer.type === 'delete' && (
-            <div className="drawer-body">
-              <p>
-                Delete <strong>{drawer.entry.name}</strong>
-                {drawer.entry.recurring ? ' and all future occurrences' : ''}? This removes the
-                entry from the local forecast. Completed account balance changes are retained.
-              </p>
-              <div className="confirm-actions">
-                <TechnicalButton onClick={() => setDrawer(null)}>Cancel</TechnicalButton>
-                <TechnicalButton
-                  className="delete-button"
-                  onClick={async () => {
-                    updateSnapshot(await financeService.deleteEntry(drawer.entry.id));
-                    notify(`${drawer.entry.name} deleted.`);
-                    setDrawer(null);
-                  }}
-                >
-                  Delete entry
-                </TechnicalButton>
               </div>
             </div>
           )}
