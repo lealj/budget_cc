@@ -27,7 +27,6 @@ Backend:
 
 ## Read-only scope
 You may inspect, but must not modify:
-- contracts/**
 - backend API definitions needed to understand interfaces.
 
 ## Out of scope
