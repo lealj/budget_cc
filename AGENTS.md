@@ -28,3 +28,17 @@ For completed feature work:
    - important implementation decisions
    - tests/checks performed
 9. Do not merge the PR yourself.
+
+## API Contracts
+
+`contracts/` is a shared boundary between frontend and backend.
+
+Frontend and backend agents may propose contract changes when required.
+
+Any modification to `contracts/` must:
+- be explicitly called out in the PR description
+- remain backward-compatible unless the task requires otherwise
+- be reviewed for both frontend and backend impact
+- update affected tests
+
+Neither frontend nor backend should change the contract merely to simplify its own implementation.
