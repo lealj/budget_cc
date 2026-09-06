@@ -62,3 +62,5 @@ Browser tests use an installed Google Chrome. Set the Playwright `channel` in `p
 Data is **in memory and resets on reload**. There is no database, backend, real Plaid integration, or browser persistence layer. Replace the mocked service methods with local ASP.NET Core endpoints when the backend is available; brief comments identify the intended request at each boundary. SQLite and EF Core belong to that future backend. Plaid credentials must never enter this frontend.
 
 Fonts, icons, and assets are local. No runtime CDN calls are needed. The dev and preview servers bind to loopback. Drawers use native focus containment and Escape dismissal; normal UI remains HTML. Reduced-motion preferences disable the GPU atmosphere and decorative motion. The ambient grid pauses when the tab is hidden and has a non-WebGL fallback.
+
+<!-- Test commit for development workflow verification. -->
