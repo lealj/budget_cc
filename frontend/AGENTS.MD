@@ -25,6 +25,16 @@ Backend:
 - Keep financial calculations outside presentation components.
 - Add comments only when they explain non-obvious intent, constraints, workarounds, or architectural decisions. Do not comment code whose behavior is already clear from its names and structure.
 
+## Read-only scope
+You may inspect, but must not modify:
+- contracts/**
+- backend API definitions needed to understand interfaces
+
+## Out of scope
+Do not modify:
+- backend/**
+- root configuration files
+
 ## Test Failure / Retry Policy
 
 When a build or test fails:
