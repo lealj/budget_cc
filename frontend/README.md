@@ -1,6 +1,6 @@
 # VECTOR — Financial operations
 
-A local React + TypeScript + Vite financial command center. The dashboard centers on **Safe to Allocate**, with a cash-flow ledger, allocation planning, account positions, custom D3 charts, Motion transitions, and a restrained React Three Fiber ambient grid.
+A local React + TypeScript + Vite dashboard for planning cash flow, allocations, and account balances.
 
 ## Run locally
 
