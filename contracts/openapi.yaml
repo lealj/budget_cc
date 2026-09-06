@@ -1,0 +1,631 @@
+openapi: 3.1.0
+info:
+  title: Vector Financial Operations API
+  version: 1.0.0
+  description: |
+    Backend contract requested by the Vector frontend. The current frontend uses an
+    in-memory service with the same operations documented here; replace that service
+    with HTTP calls without changing the data semantics below.
+
+    Important implementation notes for the backend agent:
+    - Monetary values are JSON numbers in USD dollars, rounded to cents. An entry's
+      amount is always a positive magnitude; `kind` supplies the cash-flow direction.
+    - Financial dates are local calendar dates formatted YYYY-MM-DD. Synchronization
+      timestamps and completedAt are ISO-8601 instants.
+    - All mutating finance operations must be scoped to the authenticated workspace.
+    - The frontend recalculates derived values from the returned snapshot, so mutation
+      responses must contain the complete, current Snapshot and must be transactionally
+      consistent across entries, accounts, allocations, settings, and allocatedTotal.
+    - Allocation is a local reservation in this product. It must not initiate a bank
+      transfer or increase an investment destination balance.
+  servers:
+    - url: /api/v1
+      description: Same-origin API base path used by the frontend
+tags:
+  - name: Snapshot
+    description: Atomic read of all data required to render the dashboard
+  - name: Accounts
+    description: Connected bank and credit-card account state
+  - name: Transactions
+    description: Manual and synchronized financial entries
+  - name: Allocations
+    description: Local cash reservations
+  - name: Settings
+    description: Operating limits used by forecast and allocation calculations
+paths:
+  /finance/snapshot:
+    get:
+      tags: [Snapshot]
+      summary: Get the workspace financial snapshot
+      description: |
+        Initial page load calls this operation. Return accounts, entries, allocations,
+        settings, and allocatedTotal from one consistent read so the frontend does not
+        render mixed versions of the financial state.
+      operationId: getFinanceSnapshot
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Current workspace snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /accounts:
+    get:
+      tags: [Accounts]
+      summary: List connected accounts
+      description: |
+        Returns normalized accounts used for account selection, balances, liquidity,
+        credit-card payment details, and connection-health display. Do not return full
+        account numbers; the frontend only needs lastFour.
+      operationId: getAccounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Accounts visible in the workspace
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Accounts]
+      summary: Synchronize connected accounts
+      description: |
+        Starts or completes synchronization for all connected accounts and returns the
+        updated account list. The frontend uses this for the explicit “Sync accounts”
+        command and expects each account's sync.lastSyncedAt/state to be refreshed.
+        A provider failure should be represented by sync.state=attention and a safe,
+        user-facing sync.message; never expose provider credentials or raw sensitive data.
+      operationId: syncAccounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Synchronization result
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A synchronization is already in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream account provider failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions:
+    get:
+      tags: [Transactions]
+      summary: List financial entries
+      description: |
+        Returns normalized manual and synchronized entries. The frontend expands
+        recurring rules locally for its forecast; this endpoint should return the
+        source entries, not a pre-expanded event list.
+      operationId: getTransactions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Workspace financial entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FinancialEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /transactions/{entryId}:
+    put:
+      tags: [Transactions]
+      summary: Create or replace a financial entry
+      description: |
+        The frontend uses one save operation for both create and edit, including the
+        forecast-inclusion toggle. Treat the request body as the complete entry and
+        make the path id and body id agree. If primaryPaycheck=true, clear that flag
+        from every other entry in the same workspace.
+
+        If an existing settled entry is edited, reverse its prior account effect and
+        apply the new effect atomically, including when accountId changes. A settled
+        entry removed later must not reverse money already paid or received.
+      operationId: saveEntry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialEntry'
+      responses:
+        '200':
+          description: Updated snapshot after the upsert
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Referenced account does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Entry conflicts with another workspace constraint
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Transactions]
+      summary: Delete an entry and its future occurrences
+      description: |
+        Removes the source entry and future forecast occurrences. Do not reverse an
+        account balance effect for an occurrence already completed. The operation is
+        safe to retry for an already absent entry and returns the resulting snapshot.
+      operationId: deleteEntry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: Updated snapshot after deletion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /transactions/{entryId}/complete:
+    post:
+      tags: [Transactions]
+      summary: Settle one entry occurrence
+      description: |
+        Marks the anchor occurrence complete when date is omitted, or settles the
+        specified recurring occurrence when date is supplied. Update the associated
+        account balance in the same transaction. Repeating the same request must be
+        idempotent and must not apply the balance effect twice. Completing a later
+        occurrence must preserve the recurring rule and record the date in
+        skippedDates-compatible occurrence state used by the frontend.
+      operationId: completeEntry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OccurrenceRequest'
+      responses:
+        '200':
+          description: Updated snapshot after settlement, or unchanged snapshot for a repeat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Entry was not found in the workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /transactions/{entryId}/skip:
+    post:
+      tags: [Transactions]
+      summary: Skip one forecast occurrence
+      description: |
+        Suppresses only the supplied occurrence date. Do not delete or mutate the
+        recurring rule itself. Repeating the same skip should remain idempotent.
+      operationId: skipEntry
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OccurrenceRequest'
+      responses:
+        '200':
+          description: Updated snapshot after skipping the occurrence
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Entry was not found in the workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /allocations:
+    put:
+      tags: [Allocations]
+      summary: Reserve an allocation plan
+      description: |
+        Validates the full submitted plan against the current safe-to-allocate amount
+        at commit time, not only when the UI displayed it. Every amount must be finite,
+        non-negative, and the cent-rounded total must be no greater than max(0, safe).
+        If validation fails, make no changes and return 409. On success, reserve cash
+        atomically from positive liquid balances in account order, increment
+        allocatedTotal, and return the complete snapshot. The mock clears returned
+        allocation amounts to zero after reservation; preserve that behavior unless
+        the frontend contract is revised.
+      operationId: allocateFunds
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Allocation'
+      responses:
+        '200':
+          description: Updated snapshot after local reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Allocation exceeds current safe-to-allocate cash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /settings:
+    put:
+      tags: [Settings]
+      summary: Save operating limits
+      description: |
+        Replaces the workspace settings used by the frontend's forecast and allocation
+        calculations. reserve, sinkingFund, and dailyPlan must be non-negative USD
+        amounts. Return a full snapshot so the frontend can recalculate immediately.
+      operationId: saveSettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Settings'
+      responses:
+        '200':
+          description: Updated snapshot after saving settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Snapshot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Workspace-scoped authentication; never place credentials in frontend data.
+  parameters:
+    EntryId:
+      name: entryId
+      in: path
+      required: true
+      description: Stable workspace-scoped financial-entry identifier
+      schema:
+        type: string
+        minLength: 1
+  responses:
+    BadRequest:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication is required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Authenticated caller cannot access this workspace
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Unexpected server failure
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Snapshot:
+      type: object
+      required: [accounts, entries, allocations, settings, allocatedTotal]
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Account'
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialEntry'
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Allocation'
+        settings:
+          $ref: '#/components/schemas/Settings'
+        allocatedTotal:
+          $ref: '#/components/schemas/Money'
+
+    Account:
+      type: object
+      required: [id, institution, name, lastFour, type, balance, liquid, sync]
+      properties:
+        id:
+          type: string
+        institution:
+          type: string
+        name:
+          type: string
+        lastFour:
+          type: string
+          minLength: 4
+          maxLength: 4
+          pattern: '^[0-9]{4}$'
+        type:
+          type: string
+          enum: [checking, savings, credit]
+        balance:
+          $ref: '#/components/schemas/Money'
+        liquid:
+          type: boolean
+          description: Whether this balance contributes to available liquid cash.
+        sync:
+          $ref: '#/components/schemas/SyncStatus'
+        creditLimit:
+          $ref: '#/components/schemas/Money'
+        paymentDate:
+          $ref: '#/components/schemas/CalendarDate'
+        upcomingPayment:
+          $ref: '#/components/schemas/Money'
+      description: |
+        Credit accounts include creditLimit, paymentDate, and upcomingPayment. Credit
+        balance is represented as outstanding debt; the frontend inverts its account
+        effect when settling an entry. Do not expose account numbers or provider tokens.
+
+    SyncStatus:
+      type: object
+      required: [state, lastSyncedAt]
+      properties:
+        state:
+          type: string
+          enum: [nominal, syncing, attention]
+        lastSyncedAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+
+    FinancialEntry:
+      type: object
+      required:
+        - id
+        - kind
+        - source
+        - name
+        - amount
+        - date
+        - variability
+        - recurring
+        - category
+        - accountId
+        - includedInForecast
+        - completed
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum: [income, expense]
+        source:
+          type: string
+          enum: [manual, synced, projected]
+        name:
+          type: string
+          minLength: 1
+        amount:
+          $ref: '#/components/schemas/PositiveMoney'
+        date:
+          $ref: '#/components/schemas/CalendarDate'
+        variability:
+          type: string
+          enum: [static, dynamic]
+        recurring:
+          type: boolean
+        recurrence:
+          $ref: '#/components/schemas/RecurringRule'
+        category:
+          type: string
+          minLength: 1
+        accountId:
+          type: string
+        includedInForecast:
+          type: boolean
+        completed:
+          type: boolean
+          description: Settlement state of the anchor occurrence only.
+        completedAt:
+          type: string
+          format: date-time
+        skippedDates:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalendarDate'
+          uniqueItems: true
+        merchant:
+          type: string
+        notes:
+          type: string
+        primaryPaycheck:
+          type: boolean
+      description: Recurring entries are source rules; occurrence expansion remains a frontend concern.
+
+    RecurringRule:
+      type: object
+      required: [frequency]
+      properties:
+        frequency:
+          type: string
+          enum: [weekly, biweekly, semimonthly, monthly, quarterly, annual, custom]
+        intervalDays:
+          type: integer
+          minimum: 1
+          description: Required for custom frequency; ignored for other frequencies.
+
+    Allocation:
+      type: object
+      required: [id, name, amount, color]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        amount:
+          $ref: '#/components/schemas/NonNegativeMoney'
+        color:
+          type: string
+          description: Frontend display color, normally a CSS color value.
+
+    Settings:
+      type: object
+      required: [reserve, sinkingFund, dailyPlan, ambient]
+      properties:
+        reserve:
+          $ref: '#/components/schemas/NonNegativeMoney'
+        sinkingFund:
+          $ref: '#/components/schemas/NonNegativeMoney'
+        dailyPlan:
+          $ref: '#/components/schemas/NonNegativeMoney'
+        ambient:
+          type: boolean
+
+    OccurrenceRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        date:
+          $ref: '#/components/schemas/CalendarDate'
+      description: Omit date to address the entry's anchor occurrence.
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        code:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    Money:
+      type: number
+      multipleOf: 0.01
+      description: USD amount, rounded to cents.
+    PositiveMoney:
+      allOf:
+        - $ref: '#/components/schemas/Money'
+        - type: number
+          exclusiveMinimum: 0
+    NonNegativeMoney:
+      allOf:
+        - $ref: '#/components/schemas/Money'
+        - type: number
+          minimum: 0
+    CalendarDate:
+      type: string
+      pattern: '^\\d{4}-\\d{2}-\\d{2}$'
+      description: Local calendar date in YYYY-MM-DD format; not an ISO instant.
