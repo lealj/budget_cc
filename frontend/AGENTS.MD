@@ -33,7 +33,7 @@ You may inspect, but must not modify:
 ## Out of scope
 Do not modify:
 - backend/**
-- root configuration files
+- root configuration files.
 
 ## Test Failure / Retry Policy
 
