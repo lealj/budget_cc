@@ -22,7 +22,7 @@ For completed feature work:
 4. Run the relevant build/tests and fix failures caused by your changes.
 5. Commit the completed work with a concise conventional commit message.
 6. Push the branch to `origin`.
-7. Create a GitHub pull request targeting `main` using `gh pr create`.
+7. Create a GitHub pull request targeting `dev` using `gh pr create`.
 8. In the PR description, summarize:
    - what changed
    - important implementation decisions
