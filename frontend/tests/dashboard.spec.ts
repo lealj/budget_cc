@@ -88,7 +88,7 @@ test('primary income changes paycheck window, ledger edits, completion and delet
     'RECEIVED',
   );
   await page.getByRole('button', { name: 'Delete Updated salary', exact: true }).click();
-  await page.getByRole('button', { name: 'Delete entry', exact: true }).click();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
   await expect(page.getByText('No events match your filters.')).toBeVisible();
 });
 test('allocation guard clamps amounts, allows custom destination and confirms local reservation', async ({
