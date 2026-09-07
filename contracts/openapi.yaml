@@ -1,9 +1,9 @@
 openapi: 3.1.0
 info:
-  title: Vector Financial Operations API
+  title: Budget Command Center Financial Operations API
   version: 1.0.1
   description: |
-    Backend contract requested by the Vector frontend. The current frontend uses an
+    Backend contract requested by the Budget Command Center frontend. The current frontend uses an
     in-memory service with the same operations documented here; replace that service
     with HTTP calls without changing the data semantics below.
 

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BudgetCC.Api/BudgetCC.Api.csproj" />
+    <Project Path="src/BudgetCC.Application/BudgetCC.Application.csproj" />
+    <Project Path="src/BudgetCC.Domain/BudgetCC.Domain.csproj" />
+    <Project Path="src/BudgetCC.Infrastructure/BudgetCC.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BudgetCC.Tests/BudgetCC.Tests.csproj" />
+  </Folder>
+</Solution>

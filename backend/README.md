@@ -1,4 +1,4 @@
-# Vector backend foundation
+# Budget Command Center backend foundation
 
 ASP.NET Core / EF Core / SQLite on .NET 10 LTS. This is an intentionally partial
 backend with a complete settings feature and persisted dashboard reads.
@@ -21,13 +21,13 @@ The frontend remains unchanged and uses its existing in-memory service.
 Install a stable .NET 10 SDK, then run from `backend/`:
 
 ```powershell
-dotnet restore Vector.slnx --locked-mode
-dotnet build Vector.slnx --no-restore
-dotnet test Vector.slnx --no-build
+dotnet restore BudgetCC.slnx --locked-mode
+dotnet build BudgetCC.slnx --no-restore
+dotnet test BudgetCC.slnx --no-build
 ```
 
 Package versions and transitive dependencies are locked. Generated build files go
-to the OS temporary directory under `vector-budget-build/<checkout-name>` via
+to the OS temporary directory under `budgetcc-build/<checkout-name>` via
 `Directory.Build.props`. Override `-p:ArtifactsPath=<absolute-path>` consistently
 for parallel checkouts with identical directory names. No protected ignore files
 are changed. Do not put databases or secrets in the repository.
@@ -36,10 +36,10 @@ From the repository root, validate the authoritative OpenAPI contract using an
 external Python virtual environment (Python 3.11+):
 
 ```powershell
-python -m venv "$env:TEMP/vector-contract-tests"
-& "$env:TEMP/vector-contract-tests/Scripts/python.exe" -m pip install -r tests/contracts/requirements.txt
+python -m venv "$env:TEMP/budgetcc-contract-tests"
+& "$env:TEMP/budgetcc-contract-tests/Scripts/python.exe" -m pip install -r tests/contracts/requirements.txt
 $env:PYTHONDONTWRITEBYTECODE = '1'
-& "$env:TEMP/vector-contract-tests/Scripts/python.exe" -m unittest discover -s tests/contracts -v
+& "$env:TEMP/budgetcc-contract-tests/Scripts/python.exe" -m unittest discover -s tests/contracts -v
 ```
 
 Backend tests use real file-backed SQLite databases with the committed migrations,
@@ -67,7 +67,7 @@ Apply migrations as an explicit deployment step, with the database connection
 configured, before starting the HTTP host:
 
 ```powershell
-dotnet run --project src/Vector.Api --no-build -- --migrate
+dotnet run --project src/BudgetCC.Api --no-build -- --migrate
 ```
 
 Provision the first workspace/membership using the trusted operator command.
@@ -75,7 +75,7 @@ Set `Provisioning__WorkspaceId` to an opaque local workspace ID and
 `Provisioning__Subject` to the issuer's subject, then run:
 
 ```powershell
-dotnet run --project src/Vector.Api --no-build -- --provision
+dotnet run --project src/BudgetCC.Api --no-build -- --provision
 ```
 
 Provisioning is idempotent, creates zero-valued settings, and never overwrites
@@ -87,7 +87,7 @@ accounts/entries/allocations; only test fixtures contain example financial data.
 Start the API after configuring authentication:
 
 ```powershell
-dotnet run --project src/Vector.Api --no-build
+dotnet run --project src/BudgetCC.Api --no-build
 ```
 
 Use HTTPS hosting or terminate TLS at a trusted same-origin reverse proxy. There is
@@ -102,7 +102,7 @@ Install `dotnet-ef` version `10.0.11` outside the checkout and invoke it from
 `backend/`:
 
 ```powershell
-dotnet ef migrations add DescriptiveName --project src/Vector.Infrastructure --output-dir Migrations
+dotnet ef migrations add DescriptiveName --project src/BudgetCC.Infrastructure --output-dir Migrations
 ```
 
 The design-time factory uses an in-memory database solely for model discovery.

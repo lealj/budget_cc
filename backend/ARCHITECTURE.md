@@ -6,11 +6,11 @@ This is a modular monolith with one SQLite database. Four projects enforce the
 dependency direction:
 
 ```text
-HTTP / JWT / composition (Vector.Api)
-               -> use cases, DTOs, persistence ports (Vector.Application)
-               -> pure financial invariants (Vector.Domain)
+HTTP / JWT / composition (BudgetCC.Api)
+               -> use cases, DTOs, persistence ports (BudgetCC.Application)
+               -> pure financial invariants (BudgetCC.Domain)
 
-EF Core adapters (Vector.Infrastructure) -> Application -> Domain
+EF Core adapters (BudgetCC.Infrastructure) -> Application -> Domain
 Api also references Infrastructure only to compose the concrete implementation.
 ```
 

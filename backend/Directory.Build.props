@@ -6,7 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <!-- Keep generated files out of the checkout without changing protected ignore files. -->
-    <ArtifactsPath Condition="'$(ArtifactsPath)' == ''">$([System.IO.Path]::GetTempPath())vector-budget-build/$([System.IO.Path]::GetFileName($([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))))</ArtifactsPath>
+    <ArtifactsPath Condition="'$(ArtifactsPath)' == ''">$([System.IO.Path]::GetTempPath())budgetcc-build/$([System.IO.Path]::GetFileName($([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))))</ArtifactsPath>
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
 </Project>
