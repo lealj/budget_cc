@@ -28,7 +28,7 @@ test('dashboard renders without runtime errors or horizontal overflow across wor
       true,
     );
     await page.screenshot({
-      path: `test-results/vector-${width}.png`,
+      path: `test-results/budget-cc-${width}.png`,
       fullPage: true,
     });
   }
@@ -195,5 +195,5 @@ test('reduced-motion disables GPU atmosphere and native drawer traps keyboard fo
       true,
     );
   }
-  await page.screenshot({ path: 'test-results/vector-expense-drawer.png' });
+  await page.screenshot({ path: 'test-results/budget-cc-expense-drawer.png' });
 });
