@@ -1,4 +1,4 @@
-# VECTOR — Financial operations
+# Budget Command Center — Financial operations
 
 A local React + TypeScript + Vite dashboard for planning cash flow, allocations, and account balances.
 

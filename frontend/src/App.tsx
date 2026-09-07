@@ -258,7 +258,7 @@ export default function App() {
     return (
       <div className="loading-screen">
         <Radar size={40} />
-        <SystemLabel>VECTOR / INITIALIZING FINANCIAL OPERATIONS</SystemLabel>
+        <SystemLabel>BUDGET CC / INITIALIZING FINANCIAL OPERATIONS</SystemLabel>
         {loadError ? <p role="alert">{loadError}</p> : <span className="loading-bar" />}
       </div>
     );
@@ -295,12 +295,12 @@ export default function App() {
             e.preventDefault();
             setView('overview');
           }}
-          aria-label="Vector home"
+          aria-label="Budget Command Center home"
         >
-          <span className="brand-symbol">V</span>
+          <span className="brand-symbol">B</span>
           <div>
             <strong>
-              VECTOR<span>®</span>
+              BUDGET CC<span>®</span>
             </strong>
             <small>FINANCIAL OPERATIONS</small>
           </div>
@@ -367,7 +367,7 @@ export default function App() {
           </div>
         </div>
         <div className="sidebar-version">
-          VECTOR OS <span>V.1.0.0</span>
+          BUDGET CC <span>V.1.0.0</span>
         </div>
       </aside>
       <div className="workspace">
@@ -537,8 +537,7 @@ export default function App() {
               <span className="footer-divider">/</span> DEMO DATA · RESETS ON RELOAD
             </span>
             <span>
-              VECTOR FINANCIAL OPERATIONS <span className="footer-divider">/</span> ALL AMOUNTS IN
-              USD
+              BUDGET COMMAND CENTER <span className="footer-divider">/</span> ALL AMOUNTS IN USD
             </span>
           </footer>
         </main>
@@ -557,7 +556,9 @@ export default function App() {
                     : 'Console guide'
           }
           kicker={
-            drawer.type === 'entry' ? 'FINANCIAL EVENT / MANUAL CONTROL' : 'VECTOR / SYSTEM CONTROL'
+            drawer.type === 'entry'
+              ? 'FINANCIAL EVENT / MANUAL CONTROL'
+              : 'BUDGET CC / SYSTEM CONTROL'
           }
           onClose={() => setDrawer(null)}
         >
